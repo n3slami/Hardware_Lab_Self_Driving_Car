@@ -21,7 +21,7 @@ HORIZON_RATIO = 0.58
 BOTTOM_RATIO = 0.9
 
 # Connected component constants
-MERGE_DIST_THRESHOLD = 10
+MERGE_DIST_THRESHOLD = 20
 
 # Lane line interpolation
 LANE_LINE_LOW_FRACTION = 0.03
