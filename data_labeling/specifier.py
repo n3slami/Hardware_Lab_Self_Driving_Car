@@ -4,6 +4,10 @@ import argparse
 import os
 
 
+# Cropping Constants
+HORIZON_RATIO = 0.35
+BOTTOM_RATIO = 1
+
 # Window and Drawing Constants
 WINDOW_NAME = "Data Image"
 LINE_INPUT_COLOR = (0, 255, 0)
@@ -82,6 +86,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     img = cv2.imread(args.filename[0], cv2.IMREAD_COLOR)
+    H, W, _ = img.shape
+    img = img[int(H * HORIZON_RATIO):int(H * BOTTOM_RATIO), :]
 
     left_lane = get_lane(img)
     left_lane = expand_lane_points(left_lane)
