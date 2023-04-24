@@ -23,7 +23,7 @@ def dir_filter_criterion(path):
 
 def handle_directory(path, start_ind):
     ind = 0 if start_ind == None else start_ind
-    dir_contents = list(filter(lambda dirname: dir_filter_criterion(os.path.join(path, dirname)), os.listdir(path)))
+    dir_contents = sorted(list(filter(lambda dirname: dir_filter_criterion(os.path.join(path, dirname)), os.listdir(path))))
     print(f"############# HANDLING A TOTAL OF {len(dir_contents)} DIRECTORIES #############")
     for i, dir in enumerate(dir_contents[start_ind:]):
         print(f"HANDLING #{i + ind}: {dir}")
