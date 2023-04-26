@@ -138,12 +138,22 @@ def convert_lane_samples_to_lines(interpolations, img_shape):
         l = []
         for i in range(len(interp) - 1):
             l.append(np.concatenate(interp[i:i + 2], axis=-1))
-        slope = (l[0][2] - l[0][0]) / (l[0][3] - l[0][1])
+        MEAN_COUNT = min(5, len(l))
+
+        slope = 0
+        for i in range(MEAN_COUNT):
+            slope += (l[i][2] - l[i][0]) / (l[i][3] - l[i][1])
+        slope /= MEAN_COUNT
         l[0][0], l[0][1] = l[0][0] - l[0][1] * slope, 0
-        slope = (l[-1][2] - l[-1][0]) / (l[-1][3] - l[-1][1])
+
+        slope = 0
+        for i in range(1, MEAN_COUNT + 1):
+            slope += (l[-i][2] - l[-i][0]) / (l[-i][3] - l[-i][1])
+        slope /= MEAN_COUNT
         l[-1][2], l[-1][3] = l[-1][2] + (img_shape[0] - l[-1][3]) * slope, img_shape[0]
         interp_lines.append(np.array(l))
         interp_components.append(np.ones(len(l), dtype=np.int32) * component_num)
+
     interp_lines = np.concatenate(interp_lines, axis=0).astype(np.int32)
     interp_components = np.concatenate(interp_components, axis=0)
     return interp_lines, interp_components
