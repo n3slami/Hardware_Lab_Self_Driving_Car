@@ -1,8 +1,7 @@
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 import argparse
-from utils import *
+from .utils import *
 
 
 # Smoothing, feature extraction, and line detection constants

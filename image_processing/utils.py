@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 SLOPE_FILTER_THRESHOLD = 0.25
