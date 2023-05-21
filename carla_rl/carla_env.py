@@ -42,7 +42,7 @@ class CarlaEnv:
         self.steps_per_episode = steps_per_episode
         self.playing = playing
         self.preview_camera_enabled = enable_preview
-        # self.episode = 0
+        self.step_counter = 0
 
     @property
     def observation_space(self, *args, **kwargs):
@@ -56,6 +56,10 @@ class CarlaEnv:
             return gym.spaces.Box(low=np.array([-1.0, -1.0]), high=np.array([1.0, 1.0]))
         elif self.action_type == 'discrete':
             return gym.spaces.MultiDiscrete([4, 9])
+        elif self.action_type == 'mixed':
+            throttle = gym.spaces.Discrete(4)
+            wheel = gym.spaces.Box(low=-1, high=1, shape=(1, ))
+            return gym.spaces.Tuple((throttle, wheel))
         else:
             raise NotImplementedError()
         # TODO: Add discrete actions (here and anywhere else required)
@@ -70,6 +74,8 @@ class CarlaEnv:
 
     # Resets environment for new episode
     def reset(self):
+        self.step_counter = 0
+
         self._destroy_agents()
         # logging.debug("Resetting environment")
         # Car, sensors, etc. We create them every episode then destroy
@@ -169,7 +175,7 @@ class CarlaEnv:
         image = image.reshape((self.im_height, self.im_width, -1))
         image = image[:, :, :3]
 
-        return image
+        return image, None
 
     def step(self, action):
         total_reward = 0
@@ -178,7 +184,7 @@ class CarlaEnv:
             total_reward += rew
             if done:
                 break
-        return obs, total_reward, done, info
+        return obs, total_reward, done, done, info
 
     # Steps environment
     def _step(self, action):
@@ -198,6 +204,11 @@ class CarlaEnv:
                 action = carla.VehicleControl(throttle=0, steer=float((action[1] - 4)/4), brake=1)
             else:
                 action = carla.VehicleControl(throttle=float((action[0])/3), steer=float((action[1] - 4)/4), brake=0)
+        elif self.action_type == 'mixed':
+            if action[0] == 0:
+                action = carla.VehicleControl(throttle=0, steer=float(action[1]), brake=1)
+            else:
+                action = carla.VehicleControl(throttle=float((action[0])/3), steer=float(action[1]), brake=0)
         else:
             raise NotImplementedError()
         logging.debug('{}, {}, {}'.format(action.throttle, action.steer, action.brake))
@@ -233,18 +244,17 @@ class CarlaEnv:
 
         done = False
         reward = 0
-        info = dict()
 
         # # If car collided - end and episode and send back a penalty
         if len(self.collision_hist) != 0:
             done = True
-            reward += -200
+            reward += -6
             self.collision_hist = []
             self.lane_invasion_hist = []
 
         if len(self.lane_invasion_hist) != 0:
             done = True
-            reward += -100
+            reward += -6
             self.lane_invasion_hist = []
 
         # # Reward for speed
@@ -253,9 +263,10 @@ class CarlaEnv:
         # else:
         #     reward += 0.1 * kmh
 
-        reward += 0.1 * kmh
+        reward += min(0.1 * kmh, 6)
 
-        reward += square_dist_diff
+        # This should be ignored after some point I think, but I'm leaving it be for now...
+        # reward += square_dist_diff
 
         # # Reward for distance to road lines
         # if not self.playing:
@@ -281,7 +292,8 @@ class CarlaEnv:
             logging.debug("Env lasts {} steps, restarting ... ".format(self.frame_step))
             self._destroy_agents()
         
-        return image, reward, done, info
+        self.step_counter += 1
+        return image, reward, done, self.step_counter
     
     def close(self):
         logging.info("Closes the CARLA server with process PID {}".format(self.server.pid))

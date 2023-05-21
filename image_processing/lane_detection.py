@@ -58,7 +58,10 @@ def extract_raw_lane_lines(rgb_img, debug=False):
         if lines[i][0][1] > lines[i][0][3]:
             lines[i][0] = lines[i][0][np.array((2, 3, 0, 1))]
     lines = list(filter(lambda line: is_valid_line(line, H=H, W=W), lines))
-    lines = np.concatenate(lines, axis=0)
+    if len(lines) > 0:
+        lines = np.concatenate(lines, axis=0)
+    else:
+        lines = np.array([])
     return lines, img
 
 
@@ -118,7 +121,7 @@ def interpolate_line_components(lines, components, clip=True):
                 if line[1] <= y and y <= line[3]:
                     alpha = (y - line[1]) / (line[3] - line[1])
                     x_list.append((1 - alpha) * line[0] + alpha * line[2])
-            sample_x[i] = np.mean(np.array(x_list))
+            sample_x[i] = np.mean(np.array(x_list) if len(x_list) > 0 else 0)
         res.append(np.stack((sample_x, sample_y), axis=1))
     return res
 
@@ -166,7 +169,9 @@ def render_lines(img, lines):
 
 
 def extract_lane_samples(img, debug=False):
-    lines, img = extract_raw_lane_lines(img, debug=True)
+    lines, img = extract_raw_lane_lines(img, debug=debug)
+    if len(lines) == 0:
+        return []
     components = get_line_connect_components(lines)
     interpolations = interpolate_line_components(lines, components)
     

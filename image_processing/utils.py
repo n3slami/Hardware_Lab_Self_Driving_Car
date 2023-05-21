@@ -8,7 +8,7 @@ BOTTOM_IMAGE_RATIO = 0.9
 
 def is_valid_line(line, H, W):
     x1, y1, x2, y2 = line[0]
-    slope = (y2 - y1) / (x2 - x1)
+    slope = (y2 - y1) / (x2 - x1) if x1 != x2 else 1e30
     if abs(slope) < SLOPE_FILTER_THRESHOLD:
         return False
     if max(x1, x2) > W // 2 and slope < 0:
