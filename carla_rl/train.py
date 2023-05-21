@@ -5,6 +5,7 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 import tqdm
 import time
+import argparse
 
 from .utils import *
 from .carla_env import CarlaEnv
@@ -276,6 +277,11 @@ class MixedTrainer:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="""Train an RL model in CARLA and plot metrics.""")
+    parser.add_argument("--last_save_counter", metavar="last_save_counter", type=int, nargs='?',
+                    help="Specifies the saved version of the model to use for further training.")
+    args = parser.parse_args()
+
     print("SETTING UP ENV...")
     env = CarlaEnv(town="Town02", fps=20, im_width=1280, im_height=720, repeat_action=1, start_transform_type="random",
                    sensors="rgb", action_type="mixed", enable_preview=False, steps_per_episode=500, playing=False,
@@ -297,5 +303,5 @@ if __name__ == "__main__":
     print("DONE")
 
     print("==================== COMMENCE TRAINING! ====================")
-    trainer.train(last_save_counter=3)
+    trainer.train(last_save_counter=args.last_save_counter)
     print("==================== TRAINING COMPLETE! ====================")
