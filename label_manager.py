@@ -8,6 +8,8 @@ from image_processing.lane_detection import HORIZON_RATIO as DETECTION_RATIO
 from data_labeling.specifier import HORIZON_RATIO as LABELING_RATIO
 from data_labeling.labler import get_labels
 
+NUMBER_IMAGE = 20
+
 def dir_path(string):
     if os.path.isdir(string):
         return string
@@ -16,17 +18,21 @@ def dir_path(string):
 
 
 def setup_and_store_labels(dirname):
-    img = cv2.imread(f"{dirname}/1.jpg")
-    lane_samples = extract_lane_samples(img)
-    for lane_data in lane_samples:
-        lane_data[:, 1] += int(img.shape[0] * (DETECTION_RATIO - LABELING_RATIO))
-    lane_samples = np.array(lane_samples)
+    for i in range(1, NUMBER_IMAGE+1):
+        try:
+            img = cv2.imread(f"{dirname}/{i}.jpg")
+            lane_samples = extract_lane_samples(img)
+            for lane_data in lane_samples:
+                lane_data[:, 1] += int(img.shape[0] * (DETECTION_RATIO - LABELING_RATIO))
+            lane_samples = np.array(lane_samples)
 
-    ground_truth = np.load(f"{dirname}/label.npy")
-    lane_labels = get_labels(ground_truth, lane_samples)
+            ground_truth = np.load(f"{dirname}/label.npy")
+            lane_labels = get_labels(ground_truth, lane_samples)
 
-    np.save(f"{dirname}/lane_samples.npy", lane_samples)
-    np.save(f"{dirname}/lane_labels.npy", lane_labels)
+            np.save(f"{dirname}/lane_samples{i}.npy", lane_samples)
+            np.save(f"{dirname}/lane_labels{i}.npy", lane_labels)
+        except Exception as e:
+            print(e)
 
 
 if __name__ == "__main__":
