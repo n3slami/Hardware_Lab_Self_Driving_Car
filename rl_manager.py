@@ -23,6 +23,8 @@ if __name__ == "__main__":
         stat_count = count_files_with_prefix(files_list, TRAINING_STATS_PREFIX)
 
         trainer = subprocess.Popen(["python", "-m", "carla_rl.train", "--last_save_counter", f"{model_count}"])
+        # trainer = subprocess.Popen(["python", "-m", "carla_rl.train", "--last_save_counter", f"{model_count}",
+        #                             "--enable_preview"])
         trainer.wait()
         time.sleep(1)
 
@@ -30,4 +32,4 @@ if __name__ == "__main__":
             os.rename(f"{SAVED_MODELS_DIR}/{TRAINING_STATS_PREFIX[:-1]}.png",
                     f"{SAVED_MODELS_DIR}/{TRAINING_STATS_PREFIX}{stat_count + 1}.png")
         except FileNotFoundError:
-            print("Hmmm, the stats file seems to not be here for some reason...")
+            print("Hmmm, the stats file seems to not be here for some reason... ignoring it")

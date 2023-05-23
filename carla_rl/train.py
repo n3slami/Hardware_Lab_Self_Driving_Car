@@ -18,8 +18,8 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 class MixedTrainer:
-    LEARNING_RATE = 1e-5
-    REPLAY_BUFFER_SIZE = 7000
+    LEARNING_RATE = 1e-6
+    REPLAY_BUFFER_SIZE = 40000
 
     def __init__(self, env, agent, target_network):
         self.env = env
@@ -31,7 +31,7 @@ class MixedTrainer:
 
     def compute_td_loss(self, states, actions, rewards, next_states, is_done,
                     gamma=0.95, check_shapes=False, device=device):
-        """ Compute td loss using torch operations only. Use the formulae above. """
+        """ Compute td loss using torch operations only. """
         states = torch.tensor(states, device=device, dtype=torch.float)    # shape: [batch_size, *state_shape]
 
         # for some torch reason should not make actions a tensor
@@ -139,7 +139,10 @@ class MixedTrainer:
         for game_step in range(n_steps):
             # TODO: implement this section
             q_value_params = self.agent.get_qvalue_params(np.expand_dims(s, axis=0))
+            # self.agent.epsilon, tmp = 0, self.agent.epsilon
             action = self.agent.sample_actions(q_value_params)[0]
+            # self.agent.epsilon = tmp
+            # print("####", action)
             next_s, reward, done, _, _ = self.env.step(action)
             
             self.exp_replay.add(s, action, reward, next_s, done)
@@ -154,8 +157,8 @@ class MixedTrainer:
         return sum_rewards, s
     
 
-    def train(self, timesteps_per_epoch=1, total_steps=3*10**6, save_freq=5000,
-              loss_freq=150, refresh_target_network_freq=5000, eval_freq=5000,
+    def train(self, timesteps_per_epoch=1, total_steps=3*10**6, save_freq=10000,
+              loss_freq=150, refresh_target_network_freq=10000, eval_freq=10000,
               init_epsilon=1, final_epsilon=0.1, decay_steps=1*10**6, max_grad_norm=50,
               n_lives=5, batch_size=64, last_save_counter=None):
         # setup seed
@@ -280,12 +283,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="""Train an RL model in CARLA and plot metrics.""")
     parser.add_argument("--last_save_counter", metavar="last_save_counter", type=int, nargs='?',
                     help="Specifies the saved version of the model to use for further training.")
+    parser.add_argument("--enable_preview", action="store_true", help="Render the playing process of the agent.")
     args = parser.parse_args()
 
     print("SETTING UP ENV...")
-    env = CarlaEnv(town="Town02", fps=20, im_width=1280, im_height=720, repeat_action=1, start_transform_type="random",
-                   sensors="rgb", action_type="mixed", enable_preview=False, steps_per_episode=500, playing=False,
-                   timeout=60)
+    env = CarlaEnv(town=None, fps=20, im_width=1280, im_height=720, repeat_action=1, start_transform_type="random",
+                   sensors="rgb", action_type="mixed", enable_preview=args.enable_preview, steps_per_episode=500,
+                   playing=False, timeout=60)
     env = PreprocessCARLAObs(env)
     print("DONE")
 

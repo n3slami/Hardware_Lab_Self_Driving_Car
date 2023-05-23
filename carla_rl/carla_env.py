@@ -139,12 +139,14 @@ class CarlaEnv:
             self.preview_cam.set_attribute('fov', '100')
             transform = carla.Transform(carla.Location(x=-5.5, z=2.5), carla.Rotation(pitch=8.0))
             self.preview_sensor = self.world.spawn_actor(self.preview_cam, transform, attach_to=self.vehicle, attachment_type=carla.AttachmentType.SpringArm)
+            self.preview_image_Queue.queue.clear()
             self.preview_sensor.listen(self.preview_image_Queue.put)
             self.actor_list.append(self.preview_sensor)
 
         # Here's some workarounds.
         self.vehicle.apply_control(carla.VehicleControl(throttle=1.0, brake=1.0))
         time.sleep(4)
+        self.preview_image_Queue.queue.clear()
 
         # Collision history is a list callback is going to append to (we brake simulation on a collision)
         self.collision_hist = []
@@ -248,13 +250,13 @@ class CarlaEnv:
         # # If car collided - end and episode and send back a penalty
         if len(self.collision_hist) != 0:
             done = True
-            reward += -6
+            reward += -200
             self.collision_hist = []
             self.lane_invasion_hist = []
 
         if len(self.lane_invasion_hist) != 0:
             done = True
-            reward += -6
+            reward += -200
             self.lane_invasion_hist = []
 
         # # Reward for speed
@@ -263,7 +265,7 @@ class CarlaEnv:
         # else:
         #     reward += 0.1 * kmh
 
-        reward += min(0.1 * kmh, 6)
+        reward += min(0.1 * kmh, 4)
 
         # This should be ignored after some point I think, but I'm leaving it be for now...
         # reward += square_dist_diff
@@ -276,12 +278,14 @@ class CarlaEnv:
         if self.frame_step >= self.steps_per_episode:
             done = True
 
-        if not self._on_highway():
-            self.out_of_loop += 1
-            if self.out_of_loop >= 20:
-                done = True
-        else:
-            self.out_of_loop = 0
+        # This thing is weird, so I'm removing it...
+        # if not self._on_highway():
+        #     print("OH...")
+        #     self.out_of_loop += 1
+        #     if self.out_of_loop >= 20:
+        #         done = True
+        # else:
+        #     self.out_of_loop = 0
 
         # self.total_reward += reward
 
@@ -305,7 +309,6 @@ class CarlaEnv:
         # TODO: change the width and height to compat with the preview cam config
 
         if self.preview_camera_enabled:
-
             self._display, self._clock, self._font = setup_graphics(
                 width=400,
                 height=400,
@@ -313,6 +316,7 @@ class CarlaEnv:
             )
 
             preview_img = self.preview_image_Queue.get()
+            logging.debug(f"WHAT THE FUCK IS UP WITH THIS QUEUE {preview_img} {self.preview_image_Queue.qsize()}")
             preview_img = np.array(preview_img.raw_data)
             preview_img = preview_img.reshape((400, 400, -1))
             preview_img = preview_img[:, :, :3]

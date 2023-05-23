@@ -27,6 +27,9 @@ LANE_LINE_LOW_FRACTION = 0.03
 LANE_LINE_HIGH_FRACTION = 0.97
 LANE_LINE_SAMPLE_COUNT = 15
 
+# Division sanity!
+DIV_EPSILON = 1e-2
+
 
 def extract_raw_lane_lines(rgb_img, debug=False):
     H, W, _ = rgb_img.shape
@@ -53,6 +56,8 @@ def extract_raw_lane_lines(rgb_img, debug=False):
 
     lines = cv2.HoughLinesP(img, HOUGH_RHO_QUANT, HOUGH_THETA_QUANT, HOUGH_THRESHOLD, np.array([]), 
                             minLineLength=MIN_LINE_LEN, maxLineGap=MAX_LINE_GAP)
+    if lines is None:
+        return [], img
     for i in range(len(lines)):
         # print(i, lines[i])
         if lines[i][0][1] > lines[i][0][3]:
@@ -119,7 +124,7 @@ def interpolate_line_components(lines, components, clip=True):
             x_list = []
             for line in component_lines:
                 if line[1] <= y and y <= line[3]:
-                    alpha = (y - line[1]) / (line[3] - line[1])
+                    alpha = (y - line[1]) / (line[3] - line[1] + DIV_EPSILON)
                     x_list.append((1 - alpha) * line[0] + alpha * line[2])
             sample_x[i] = np.mean(np.array(x_list) if len(x_list) > 0 else 0)
         res.append(np.stack((sample_x, sample_y), axis=1))
@@ -144,13 +149,13 @@ def convert_lane_samples_to_lines(interpolations, img_shape):
 
         slope = 0
         for i in range(MEAN_COUNT):
-            slope += (l[i][2] - l[i][0]) / (l[i][3] - l[i][1])
+            slope += (l[i][2] - l[i][0]) / (l[i][3] - l[i][1] + DIV_EPSILON)
         slope /= MEAN_COUNT
         l[0][0], l[0][1] = l[0][0] - l[0][1] * slope, 0
 
         slope = 0
         for i in range(1, MEAN_COUNT + 1):
-            slope += (l[-i][2] - l[-i][0]) / (l[-i][3] - l[-i][1])
+            slope += (l[-i][2] - l[-i][0]) / (l[-i][3] - l[-i][1] + DIV_EPSILON)
         slope /= MEAN_COUNT
         l[-1][2], l[-1][3] = l[-1][2] + (img_shape[0] - l[-1][3]) * slope, img_shape[0]
         interp_lines.append(np.array(l))

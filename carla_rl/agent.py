@@ -22,7 +22,7 @@ class MixedDQNAgent(nn.Module):
         self.steer_action_high = env.action_space[1].high
         self.steer_action_low = env.action_space[1].low
 
-        layer_sizes =  [self.state_shape, 25, 15, 10]
+        layer_sizes =  [self.state_shape, 25, 10]
         self.shared_model = nn.Sequential(*self._construct_layers(layer_sizes))
         self.mean_head = nn.Sequential(
             nn.Linear(layer_sizes[-1], self.n_actions_throttle),
@@ -59,6 +59,7 @@ class MixedDQNAgent(nn.Module):
         takes agent's observation (tensor), returns qvalues (tensor)
         :param state_t: a batch of lane lines, shape = [batch_size, lane_lines_data_count]
         """
+        # print("FORWAAAAAAAAAAAAAAARD", state_t)
         shared_params = self.shared_model(state_t)
         means = self.mean_head(shared_params)
         stds = self.std_head(shared_params) + MixedDQNAgent.div_epsilon
@@ -69,6 +70,8 @@ class MixedDQNAgent(nn.Module):
         scalers = self.scale_head(shared_params)
         add = self.add_head(shared_params)
         res = torch.stack([means, stds, scalers, add], dim=2)
+        # print(shared_params)
+        # print("FORWARD RESULT", means, stds, scalers, add)
         # print("CHEEEEEEEEEEEEEEEEEEEEEEEEEEEECK")
         # print(res)
         # print(means)

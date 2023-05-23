@@ -43,7 +43,7 @@ def setup(
         frame: The synchronous simulation time step ID.
         server: The `CARLA` server.
     """
-    assert town in ("Town01", "Town02", "Town03", "Town04", "Town05")
+    assert town in ("Town01", "Town02", "Town03", "Town04", "Town05", None)
 
     # The attempts counter.
     attempts = 0
@@ -58,8 +58,15 @@ def setup(
         # Start CARLA server.
         logging.debug("Inits a CARLA server at port={}".format(port))
         CARLA_SERVER_LOCATION = str(os.path.join(os.environ.get("CARLA_ROOT"), "CarlaUE4.sh"))
+        
+        # Show main viewport
+        # server = subprocess.Popen([CARLA_SERVER_LOCATION, f"-carla-port={port}"],
+        #                           stdout=None, stderr=subprocess.STDOUT, preexec_fn=os.setsid)
+
+        # Don't show any viewport
         server = subprocess.Popen([CARLA_SERVER_LOCATION, "-RenderOffScreen", f"-carla-port={port}"],
                                   stdout=None, stderr=subprocess.STDOUT, preexec_fn=os.setsid)
+        
         atexit.register(os.killpg, server.pid, signal.SIGKILL)
         time.sleep(server_timestop)
 
@@ -68,7 +75,8 @@ def setup(
         try:
             client = carla.Client("localhost", port)  # pylint: disable=no-member
             client.set_timeout(client_timeout)
-            client.load_world(map_name=town)
+            if town is not None:
+                client.load_world(map_name=town)
             world = client.get_world()
             world.set_weather(carla.WeatherParameters.ClearNoon)  # pylint: disable=no-member
             frame = world.apply_settings(
