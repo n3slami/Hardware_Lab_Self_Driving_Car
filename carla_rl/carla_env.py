@@ -316,7 +316,7 @@ class CarlaEnv:
             )
 
             preview_img = self.preview_image_Queue.get()
-            logging.debug(f"WHAT THE FUCK IS UP WITH THIS QUEUE {preview_img} {self.preview_image_Queue.qsize()}")
+            preview_img.save_to_disk(f"frame{self.step_counter}.png")
             preview_img = np.array(preview_img.raw_data)
             preview_img = preview_img.reshape((400, 400, -1))
             preview_img = preview_img[:, :, :3]

@@ -277,6 +277,7 @@ class MixedTrainer:
 
                 # plt.show()
                 plt.savefig("saved-models/training_stats.png")
+                plt.close()
 
 
 if __name__ == "__main__":
