@@ -14,7 +14,7 @@ import threading
 from carla_rl.setup import setup
 
 
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 
 
 LOCAL_IP = ""

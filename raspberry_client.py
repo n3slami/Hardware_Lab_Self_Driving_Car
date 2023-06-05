@@ -9,7 +9,7 @@ from tflite_runtime.interpreter import Interpreter
 from image_processing import lane_detection
 
 
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 
 
 MODEL_PATH = "./carla_rl/agent.tflite"
