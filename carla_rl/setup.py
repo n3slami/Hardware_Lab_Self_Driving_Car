@@ -25,6 +25,7 @@ def setup(
     server_timestop: float = 10.0,
     client_timeout: float = 2.0,
     num_max_restarts: int = 10,
+    evaluation: bool = False,
 ):
     """Returns the `CARLA` `server`, `client` and `world`.
 
@@ -59,13 +60,13 @@ def setup(
         logging.debug("Inits a CARLA server at port={}".format(port))
         CARLA_SERVER_LOCATION = str(os.path.join(os.environ.get("CARLA_ROOT"), "CarlaUE4.sh"))
         
-        # Show main viewport
-        # server = subprocess.Popen([CARLA_SERVER_LOCATION, f"-carla-port={port}"],
-        #                           stdout=None, stderr=subprocess.STDOUT, preexec_fn=os.setsid)
-
-        # Don't show any viewport
-        server = subprocess.Popen([CARLA_SERVER_LOCATION, "-RenderOffScreen", f"-carla-port={port}"],
-                                  stdout=None, stderr=subprocess.STDOUT, preexec_fn=os.setsid)
+        server = None
+        if evaluation:  # Show main viewport
+            server = subprocess.Popen([CARLA_SERVER_LOCATION, f"-carla-port={port}"],
+                                    stdout=None, stderr=subprocess.STDOUT, preexec_fn=os.setsid)
+        else:   # Don't show any viewport
+            server = subprocess.Popen([CARLA_SERVER_LOCATION, "-RenderOffScreen", f"-carla-port={port}"],
+                                    stdout=None, stderr=subprocess.STDOUT, preexec_fn=os.setsid)
         
         atexit.register(os.killpg, server.pid, signal.SIGKILL)
         time.sleep(server_timestop)
@@ -79,11 +80,17 @@ def setup(
                 client.load_world(map_name=town)
             world = client.get_world()
             world.set_weather(carla.WeatherParameters.ClearNoon)  # pylint: disable=no-member
-            frame = world.apply_settings(
-                carla.WorldSettings(  # pylint: disable=no-member
-                    synchronous_mode=True,
-                    fixed_delta_seconds=1.0 / fps,
-                ))
+            if evaluation:
+                frame = world.apply_settings(
+                    carla.WorldSettings(  # pylint: disable=no-member
+                        synchronous_mode=False
+                    ))
+            else:
+                frame = world.apply_settings(
+                    carla.WorldSettings(  # pylint: disable=no-member
+                        synchronous_mode=True,
+                        fixed_delta_seconds=1.0 / fps,
+                    ))
             logging.debug("Server version: {}".format(client.get_server_version()))
             logging.debug("Client version: {}".format(client.get_client_version()))
             return client, world, frame, server
