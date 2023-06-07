@@ -91,6 +91,8 @@ def get_image_from_socket(s, height, width, channel):
 
 
 def get_action_from_observation(obs):
+    if obs[0] == 0 and obs[7] == 0:
+        return np.array([3, 0], dtype=np.float64)
     MODEL.set_tensor(MODEL_INPUT_DETAILS[0]["index"], np.expand_dims(obs, axis=0))
     MODEL.invoke()
     qvalue_params = np.squeeze(MODEL.get_tensor(MODEL_OUTPUT_DETAILS[0]["index"]))
@@ -99,6 +101,8 @@ def get_action_from_observation(obs):
     max_score = 1 / (np.sqrt(2 * np.pi) * qvalue_params[..., 1]) * qvalue_params[..., 2] + qvalue_params[..., 3]
     best_throttle_action = max_score.argmax()
     best_steer_action = qvalue_params[best_throttle_action, 0]
+    # if (obs[0] == 1 and obs[7] == 1) and min(abs(obs[3]), obs[7]) > 0.9:
+    #     best_steer_action = 0
     return np.array([best_throttle_action, best_steer_action], dtype=np.float64)
 
 

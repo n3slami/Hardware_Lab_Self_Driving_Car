@@ -46,6 +46,8 @@ class CarlaEnv:
         self.start_transform_type = start_transform_type
         self.actor_list = []
 
+        self.tmp_counter = 0
+
 
     def set_front_image(self, x):
         self.front_image = x
@@ -127,7 +129,11 @@ class CarlaEnv:
         if action[0] == 0:
             action = carla.VehicleControl(throttle=0, steer=float(action[1]), brake=1)
         else:
-            action = carla.VehicleControl(throttle=float((action[0])/3), steer=float(action[1]), brake=0)
+            v = self.vehicle.get_velocity()
+            kmh = 3.6 * math.sqrt(v.x**2 + v.y**2 + v.z**2)
+            threshold = 12
+            action = carla.VehicleControl(throttle=float((action[0])/3) if kmh < threshold else 0, steer=float(action[1]),
+                                          brake=0 if kmh < threshold else 1)
         logging.debug('{}, {}, {}'.format(action.throttle, action.steer, action.brake))
         self.vehicle.apply_control(action)
     
@@ -174,7 +180,8 @@ class CarlaEnv:
         if self.start_transform_type == 'random':
             return random.choice(self.map.get_spawn_points())
         elif self.start_transform_type == 'first':
-            return self.map.get_spawn_points()[1]
+            self.tmp_counter += 1
+            return self.map.get_spawn_points()[self.tmp_counter]
         elif self.start_transform_type == 'highway':
             if self.map.name == "Town04":
                 for trial in range(10):
