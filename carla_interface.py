@@ -34,7 +34,7 @@ class CarlaEnv:
 
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, town=None, fps=20, im_width=1280, im_height=720, start_transform_type="first", timeout=60):
+    def __init__(self, town=None, fps=30, im_width=1280, im_height=720, start_transform_type="evaluation", timeout=60):
 
         self.client, self.world, self.frame, self.server = setup(town=town, fps=fps, client_timeout=timeout, evaluation=True)
         self.client.set_timeout(2.0)
@@ -47,6 +47,8 @@ class CarlaEnv:
         self.actor_list = []
 
         self.tmp_counter = 0
+        self.candidate_spawns = [27, 62, 66, 68, 71, 96, 107, 108, 111, 4, 7, 10, 15, 17, 23, 29,
+                                 45, 47, 65, 69, 72, 92, 100, 105]
 
 
     def set_front_image(self, x):
@@ -93,10 +95,15 @@ class CarlaEnv:
         self.rgb_cam.set_attribute('image_size_y', f'{self.im_height}')
         self.rgb_cam.set_attribute('fov', '110')
 
-        transform_front  = carla.Transform(carla.Location(x=0.3, z=1.3))
+        transform_front = carla.Transform(carla.Location(x=0.3, z=1.3))
         self.sensor_front = self.world.spawn_actor(self.rgb_cam, transform_front, attach_to=self.vehicle)
         self.sensor_front.listen(self.set_front_image)
         self.actor_list.extend([self.sensor_front])
+
+        camera_bp = self.world.get_blueprint_library().find('sensor.camera.rgb')
+        transform_spectator = carla.Transform(carla.Location(x=-4, z=2))
+        self.spectator_camera = self.world.spawn_actor(camera_bp, transform_spectator, attach_to=self.vehicle)
+        self.actor_list.append(self.spectator_camera)
 
         # Here's some workarounds.
         self.vehicle.apply_control(carla.VehicleControl(throttle=1.0, brake=1.0))
@@ -136,6 +143,7 @@ class CarlaEnv:
                                           brake=0 if kmh < threshold else 1)
         logging.debug('{}, {}, {}'.format(action.throttle, action.steer, action.brake))
         self.vehicle.apply_control(action)
+        self.world.get_spectator().set_transform(self.spectator_camera.get_transform())
     
 
     def close(self):
@@ -180,8 +188,11 @@ class CarlaEnv:
         if self.start_transform_type == 'random':
             return random.choice(self.map.get_spawn_points())
         elif self.start_transform_type == 'first':
-            self.tmp_counter += 1
+            self.tmp_counter = (self.tmp_counter + 1) % len(self.map.get_spawn_points())
             return self.map.get_spawn_points()[self.tmp_counter]
+        elif self.start_transform_type == 'evaluation':
+            self.tmp_counter = (self.tmp_counter + 1) % len(self.candidate_spawns)
+            return self.map.get_spawn_points()[self.candidate_spawns[self.tmp_counter]]
         elif self.start_transform_type == 'highway':
             if self.map.name == "Town04":
                 for trial in range(10):

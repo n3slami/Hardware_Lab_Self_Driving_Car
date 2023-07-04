@@ -22,6 +22,8 @@ logging.set_verbosity(logging.INFO)
 class CarlaEnv:
 
     metadata = {'render.modes': ['human']}
+    MAX_SPEED = 15
+    MAX_NORMALIZED_SPEED = 1.5
 
     def __init__(self, town, fps, im_width, im_height, repeat_action, start_transform_type, sensors,
                  action_type, enable_preview, steps_per_episode, playing=False, timeout=60):
@@ -47,7 +49,9 @@ class CarlaEnv:
     @property
     def observation_space(self, *args, **kwargs):
         """Returns the observation spec of the sensor."""
-        return gym.spaces.Box(low=0.0, high=255.0, shape=(self.im_height, self.im_width, 3), dtype=np.uint8)
+        return gym.spaces.Tuple((gym.spaces.Box(low=0.0, high=255.0, shape=(self.im_height, self.im_width, 3),
+                                                dtype=np.uint8),
+                                 gym.spaces.Box(low=0.0, high=CarlaEnv.MAX_NORMALIZED_SPEED, shape=(1, ))))
 
     @property
     def action_space(self):
@@ -177,7 +181,7 @@ class CarlaEnv:
         image = image.reshape((self.im_height, self.im_width, -1))
         image = image[:, :, :3]
 
-        return image, None
+        return (image, np.zeros(1)), None
 
     def step(self, action):
         total_reward = 0
@@ -195,6 +199,10 @@ class CarlaEnv:
             
         self.frame_step += 1
 
+        # Calculate speed in km/h from car's velocity (3D vector)
+        v = self.vehicle.get_velocity()
+        kmh = 3.6 * math.sqrt(v.x**2 + v.y**2 + v.z**2)
+
         # Apply control to the vehicle based on an action
         if self.action_type == 'continuous':
             if action[0] > 0:
@@ -210,15 +218,12 @@ class CarlaEnv:
             if action[0] == 0:
                 action = carla.VehicleControl(throttle=0, steer=float(action[1]), brake=1)
             else:
-                action = carla.VehicleControl(throttle=float((action[0])/3), steer=float(action[1]), brake=0)
+                action = carla.VehicleControl(throttle=float(action[0]/3) if kmh < CarlaEnv.MAX_SPEED else 0,
+                                              steer=float(action[1]), brake=0 if kmh < CarlaEnv.MAX_SPEED else 1)
         else:
             raise NotImplementedError()
         logging.debug('{}, {}, {}'.format(action.throttle, action.steer, action.brake))
         self.vehicle.apply_control(action)
-
-        # Calculate speed in km/h from car's velocity (3D vector)
-        v = self.vehicle.get_velocity()
-        kmh = 3.6 * math.sqrt(v.x**2 + v.y**2 + v.z**2)
 
         loc = self.vehicle.get_location()
         new_dist_from_start = loc.distance(self.start_transform.location)
@@ -265,7 +270,7 @@ class CarlaEnv:
         # else:
         #     reward += 0.1 * kmh
 
-        reward += min(0.1 * kmh, 4)
+        reward += 0.1 * kmh
 
         # This should be ignored after some point I think, but I'm leaving it be for now...
         # reward += square_dist_diff
@@ -297,7 +302,7 @@ class CarlaEnv:
             self._destroy_agents()
         
         self.step_counter += 1
-        return image, reward, done, self.step_counter
+        return (image, np.array([kmh / CarlaEnv.MAX_SPEED])), reward, done, self.step_counter
     
     def close(self):
         logging.info("Closes the CARLA server with process PID {}".format(self.server.pid))
@@ -316,7 +321,7 @@ class CarlaEnv:
             )
 
             preview_img = self.preview_image_Queue.get()
-            preview_img.save_to_disk(f"frame{self.step_counter}.png")
+            # preview_img.save_to_disk(f"frame{self.step_counter}.png")
             preview_img = np.array(preview_img.raw_data)
             preview_img = preview_img.reshape((400, 400, -1))
             preview_img = preview_img[:, :, :3]

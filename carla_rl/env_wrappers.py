@@ -10,8 +10,8 @@ class PreprocessCARLAObs(ObservationWrapper):
     def __init__(self, env):
         ObservationWrapper.__init__(self, env)
 
-        self.observation_count = 14
-        self.observation_space = Box(0.0, 1.0, (self.observation_count, ))
+        self.observation_count = 15
+        self.observation_space = Box(0.0, 10.0, (self.observation_count, ))
 
     def _get_curvature(self, lane_samples):
         if len(lane_samples) == 0:
@@ -56,7 +56,8 @@ class PreprocessCARLAObs(ObservationWrapper):
         right_lane_data = self._get_single_lane_data(all_lane_data[right_ind] if right_ind != -1 else None, False)
         return np.concatenate([left_lane_data, right_lane_data])
 
-    def observation(self, image):
+    def observation(self, obs):
         """what happens to each observation"""
+        image, speed = obs
         lane_data = self._get_lane_data(image)
-        return lane_data
+        return np.concatenate([lane_data, speed])

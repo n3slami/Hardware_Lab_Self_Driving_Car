@@ -79,7 +79,7 @@ def setup(
             if town is not None:
                 client.load_world(map_name=town)
             world = client.get_world()
-            world.set_weather(carla.WeatherParameters.ClearNoon)  # pylint: disable=no-member
+            world.set_weather(carla.WeatherParameters.CloudySunset)  # pylint: disable=no-member
             if evaluation:
                 frame = world.apply_settings(
                     carla.WorldSettings(  # pylint: disable=no-member
