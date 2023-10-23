@@ -2,3 +2,8 @@
 Self driving car project, part of out hardware lab course.
 
 This project is being constructed on top of CARLA.
+
+### Contributors
+* Navid Eslami
+* Parsa   Hosseini
+* Mahdi   Salmani
