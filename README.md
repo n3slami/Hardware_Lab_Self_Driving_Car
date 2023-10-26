@@ -3,10 +3,10 @@ Self driving car project, part of our hardware lab course.
 
 This project is being constructed on top of CARLA.
 ## Demo Videos
-![Demo 1](https://drive.google.com/file/d/1_KC6s-kVxmSJI3kw3nUTBxWDDzCjSU-3/view?usp=sharing)
-
+[Demo_1.webm](https://github.com/n3slami/Hardware_Lab_Self_Driving_Car/assets/63145495/3fad8417-bb55-46d9-a8f4-a40119947daa)
 
 ### Contributors
+
 * Navid Eslami
 * Parsa   Hosseini
 * Mahdi   Salmani
